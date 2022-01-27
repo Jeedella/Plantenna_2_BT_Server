@@ -73,9 +73,9 @@ int init_SPMS()
     // Start "update" timer, callback every minute
     printk("[%s] update timer\n", strInit);
     k_timer_init(&updateTimer, updateHandler, NULL);
-    k_timer_start(&updateTimer, K_SECONDS(5), K_SECONDS(5));
+    k_timer_start(&updateTimer, K_SECONDS(30), K_SECONDS(30));
     k_timer_init(&updateStorage, print_storage_all,NULL);
-    k_timer_start(&updateStorage, K_SECONDS(15), K_SECONDS(15));
+    k_timer_start(&updateStorage, K_SECONDS(30), K_SECONDS(30));
     printk("%s %s update timer\n", strPass, strInit);
 
     // Status check

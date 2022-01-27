@@ -23,6 +23,7 @@ int add_sensor_series(airflow_local sensor_data) {
         return 0;
     }
     else {
+        printk("\n\nERROR: Storage full!!\n");
         return -1;
     }
 }
@@ -102,6 +103,12 @@ void no_response(struct k_timer *timer_id) {
     k_timer_stop(&uart_timer);
 }
 
+static struct k_timer check_UART;
+void print_nd()
+{
+    printk("nd");
+}
+
 // Sends the local storage to the cloud
 int send_to_cloud() {
     int ret = -1;
@@ -109,7 +116,7 @@ int send_to_cloud() {
     // Initialize UART
     const struct device *uart_dev;
     uart_dev = device_get_binding(DT_LABEL(MY_SERIAL));
-    
+    k_timer_init(&check_UART, print_nd, NULL);
     // Create timer in case there is no response
     struct k_timer uart_timer;
     k_timer_init(&uart_timer, no_response, NULL);
@@ -135,15 +142,17 @@ int send_to_cloud() {
             if (condition == DATA_READY) {
                 
                 if (!strcmp(store_buff, "ok")) {
+                    k_timer_stop(&check_UART);
                     condition = DATA_SENDING;
+                    // k_timer_start(&uart_timer, K_SECONDS(1), K_SECONDS(1));
                     printk("{\"time\": %d, \"temp\": %d, \"humi\": %d, \"pres\": %d, \"batt\": %d, \"airf\": %d, \"test\": %d, ", 
                                 localStorage[i].time, localStorage[i].temp, 
                                 localStorage[i].humi, localStorage[i].pres,
                                 localStorage[i].batt, localStorage[i].airf, localStorage[i].test);
+
                 }
                 else
-                    printk("nd");
-
+                    k_timer_start(&check_UART, K_MSEC(10), K_MSEC(100));
             }
             // Check if data has been received ("dn" -> done)
             else if (condition == DATA_SENDING && !strcmp(store_buff, "dn")) {
@@ -152,11 +161,11 @@ int send_to_cloud() {
             }
             // Send data again when not received
             else if (condition == DATA_SENDING) {
-                
-                printk("{\"time\": %d, \"temp\": %d, \"humi\": %d, \"pres\": %d, \"batt\": %d, \"airf\": %d, \"test\": %d, ", 
-                                localStorage[i].time, localStorage[i].temp, 
-                                localStorage[i].humi, localStorage[i].pres,
-                                localStorage[i].batt, localStorage[i].airf, localStorage[i].test);
+                // k_timer_start(&uart_timer, K_SECONDS(1), K_SECONDS(1));
+                // printk("{\"time\": %d, \"temp\": %d, \"humi\": %d, \"pres\": %d, \"batt\": %d, \"airf\": %d, \"test\": %d, ", 
+                //                 localStorage[i].time, localStorage[i].temp, 
+                //                 localStorage[i].humi, localStorage[i].pres,
+                //                 localStorage[i].batt, localStorage[i].airf, localStorage[i].test);
             }
         }       
         
@@ -173,9 +182,10 @@ int send_to_cloud() {
         }
         else {
             printk("Cloud not connected, Ind=%d\n",storageIndex);
-            cloud_connected = !cloud_connected;
+            // cloud_connected = !cloud_connected;
         }
     }
+    
     return ret;
 }
 
