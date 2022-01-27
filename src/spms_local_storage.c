@@ -1,5 +1,6 @@
 // Include common libraries
 #include "spms_libs.h"
+#include <drivers/uart.h>
 
 // Globals
 static airflow_local* localStorage;
@@ -70,22 +71,105 @@ int get_sensor_series_index(int index, airflow_local* sensor_data) {
 //     }
 // }
 
+// Condition defines
+#define TIMES_UP 0
+#define DATA_READY 1
+#define DATA_SENDING 2
+#define DATA_SEND 3
+#define NO_NEW_DATA 4
+
+unsigned int condition = NO_NEW_DATA;
+
+// UART buffers
+unsigned char read_buff[1];
+unsigned char store_buff[3] = {'\0', '\0','\0'};
+
+// UART init
+#define MY_SERIAL DT_NODELABEL(uart0)
+#if DT_NODE_HAS_STATUS(MY_SERIAL, okay)
+#else
+#error "Node is disabled"
+#endif
+
 bool cloud_connected = true;
+
+struct k_timer uart_timer;
+
+// Timer if there is no response on uart
+void no_response(struct k_timer *timer_id) {
+    condition = TIMES_UP;
+    cloud_connected = false;
+    k_timer_stop(&uart_timer);
+}
+
 // Sends the local storage to the cloud
 int send_to_cloud() {
     int ret = -1;
+
+    // Initialize UART
+    const struct device *uart_dev;
+    uart_dev = device_get_binding(DT_LABEL(MY_SERIAL));
+    
+    // Create timer in case there is no response
+    struct k_timer uart_timer;
+    k_timer_init(&uart_timer, no_response, NULL);
+
     for(int i = 0; i<storageIndex;i++)
     {
         printk("[%d] Indx=%d\n",localStorage[i].time,storageIndex);
+
+         // Signal new data and change condition
+        printk("nd");
+        condition = DATA_READY;
+
+        // Try as long as needed till data has been received
+        while (condition != DATA_SEND || condition == TIMES_UP) {
+            
+            // Read uart
+            if (uart_poll_in(uart_dev, read_buff) == 0) {
+                store_buff[0] = store_buff[1];
+                store_buff[1] = *read_buff;
+                printk("%s\n", store_buff);
+            }
+            // Check if there is a response
+            if (condition == DATA_READY) {
+                
+                if (!strcmp(store_buff, "ok")) {
+                    condition = DATA_SENDING;
+                    printk("{\"time\": %d, \"temp\": %d, \"humi\": %d, \"pres\": %d, \"batt\": %d, \"airf\": %d, \"test\": %d, ", 
+                                localStorage[i].time, localStorage[i].temp, 
+                                localStorage[i].humi, localStorage[i].pres,
+                                localStorage[i].batt, localStorage[i].airf, localStorage[i].test);
+                }
+                else
+                    printk("nd");
+
+            }
+            // Check if data has been received ("dn" -> done)
+            else if (condition == DATA_SENDING && !strcmp(store_buff, "dn")) {
+                condition = DATA_SEND;
+                cloud_connected = true;
+            }
+            // Send data again when not received
+            else if (condition == DATA_SENDING) {
+                
+                printk("{\"time\": %d, \"temp\": %d, \"humi\": %d, \"pres\": %d, \"batt\": %d, \"airf\": %d, \"test\": %d, ", 
+                                localStorage[i].time, localStorage[i].temp, 
+                                localStorage[i].humi, localStorage[i].pres,
+                                localStorage[i].batt, localStorage[i].airf, localStorage[i].test);
+            }
+        }       
+        
         if(cloud_connected)
         {
-            //Sebd to cloud if succes remove it
-            if(!remove_sensor_series(i))
+            //Send to cloud if succes remove it
+            if (!remove_sensor_series(i))
             {
                 printk("Succes, SI:%d\n",storageIndex);
                 cloud_connected = !cloud_connected;
                 ret =  0;
             }
+            condition = NO_NEW_DATA;
         }
         else {
             printk("Cloud not connected, Ind=%d\n",storageIndex);
