@@ -119,14 +119,14 @@ int send_to_cloud() {
     k_timer_init(&check_UART, print_nd, NULL);
     // Create timer in case there is no response
     struct k_timer uart_timer;
-    k_timer_init(&uart_timer, no_response, NULL);
+    // k_timer_init(&uart_timer, no_response, NULL);
 
     for(int i = 0; i<storageIndex;i++)
     {
         printk("[%d] Indx=%d\n",localStorage[i].time,storageIndex);
 
          // Signal new data and change condition
-        printk("nd");
+        printk("nd\n");
         condition = DATA_READY;
 
         // Try as long as needed till data has been received
@@ -145,7 +145,7 @@ int send_to_cloud() {
                     k_timer_stop(&check_UART);
                     condition = DATA_SENDING;
                     // k_timer_start(&uart_timer, K_SECONDS(1), K_SECONDS(1));
-                    printk("{\"time\": %d, \"temp\": %d, \"humi\": %d, \"pres\": %d, \"batt\": %d, \"airf\": %d, \"test\": %d, ", 
+                    printk("{\"time\": %d, \"temp\": %d, \"humi\": %d, \"pres\": %d, \"batt\": %d, \"airf\": %d, \"test\": %d}\n", 
                                 localStorage[i].time, localStorage[i].temp, 
                                 localStorage[i].humi, localStorage[i].pres,
                                 localStorage[i].batt, localStorage[i].airf, localStorage[i].test);
