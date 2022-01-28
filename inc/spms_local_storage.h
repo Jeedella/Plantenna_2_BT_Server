@@ -13,6 +13,7 @@
     airf        airflow             in mm/s     -           
 */
 typedef struct {
+    uint32_t    id;
     uint32_t    time;
     int16_t     temp;
     uint16_t    humi;
@@ -66,7 +67,7 @@ int get_sensor_series(int index, airflow_local* sensor_data);
 int send_to_cloud();
 
 // Stores the data into the airflow struc
-airflow_local store_payload(airflow_local data, uint16_t* payload);
+airflow_local store_payload(airflow_local data, uint16_t* payload, uint16_t addr);
 
 //Print all storages
 void print_storage_all();

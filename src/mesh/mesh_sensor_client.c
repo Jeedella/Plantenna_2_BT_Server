@@ -134,7 +134,8 @@ void sensor_descriptor_status_rx(struct bt_mesh_model *model,
             printk("Property id[%d]        = 0x%x\n", i, payload[(i << 4)]); 
             printk("Positive tolerance[%d] = %d\n", i, payload[(i << 4) + 1]);
             printk("Negative tolerance[%d] = %d\n", i, payload[(i << 4) + 2]);
-            char* nxt = &payload[(i << 4) + 3];
+            // char* nxt = &payload[(i << 4) + 3];
+            char* nxt = {'0'};
             printk("Sampling function[%d]  = %d\n", i, nxt[0]);
             printk("Measurment period[%d]  = %d\n", i, nxt[1]);
             printk("Update interval[%d]    = %d\n", i, payload[(i << 4) + 4]);
@@ -161,7 +162,7 @@ void sensor_data_status_rx(struct bt_mesh_model *model,
         // printk("Sensor\t[%d]:\t %x\n", k, payload[k << 1]^remove_MIPDA );
         printk("Data\t[%d]:\t %d\n", k, payload[(k << 1) + 1]);
     }
-    incomingData = store_payload(incomingData, payload);
+    incomingData = store_payload(incomingData, payload, ctx->addr);
     if(!add_sensor_series(incomingData))
     {
         send_to_cloud();

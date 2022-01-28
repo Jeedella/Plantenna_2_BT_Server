@@ -145,10 +145,10 @@ int send_to_cloud() {
                     k_timer_stop(&check_UART);
                     condition = DATA_SENDING;
                     // k_timer_start(&uart_timer, K_SECONDS(1), K_SECONDS(1));
-                    printk("{\"time\": %d, \"temp\": %d, \"humi\": %d, \"pres\": %d, \"batt\": %d, \"airf\": %d, \"test\": %d}\n", 
+                    printk("{\"time\": %d, \"temp\": %d, \"humi\": %d, \"pres\": %d, \"batt\": %d, \"airf\": %d, \"test\": %d, \"nodeID\": %d}\n", 
                                 localStorage[i].time, localStorage[i].temp, 
                                 localStorage[i].humi, localStorage[i].pres,
-                                localStorage[i].batt, localStorage[i].airf, localStorage[i].test);
+                                localStorage[i].batt, localStorage[i].airf, localStorage[i].test, localStorage[i].id);
 
                 }
                 else
@@ -190,8 +190,9 @@ int send_to_cloud() {
 }
 
 // Stores the data into the airflow struc
-airflow_local store_payload(airflow_local data, uint16_t* payload)
+airflow_local store_payload(airflow_local data, uint16_t* payload, uint16_t addr)
 {
+    data.id   = addr%2+1;
     data.time = (uint32_t) k_uptime_ticks();;
     data.temp = payload[1];
     data.humi = payload[3];
